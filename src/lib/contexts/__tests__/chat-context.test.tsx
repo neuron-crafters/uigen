@@ -43,13 +43,13 @@ describe("ChatContext", () => {
   };
 
   const mockHandleToolCall = vi.fn();
+  const mockSendMessage = vi.fn();
 
+  // v6 useChat returns messages, sendMessage, status (no input/handleInputChange/handleSubmit)
   const mockUseAIChat = {
     messages: [],
-    input: "",
-    handleInputChange: vi.fn(),
-    handleSubmit: vi.fn(),
-    status: "idle",
+    sendMessage: mockSendMessage,
+    status: "ready",
   };
 
   beforeEach(() => {
@@ -75,15 +75,15 @@ describe("ChatContext", () => {
     );
 
     expect(screen.getByTestId("messages").textContent).toBe("0");
-    expect(screen.getByTestId("input").getAttribute("value")).toBe(null);
-    expect(screen.getByTestId("status").textContent).toBe("idle");
+    expect((screen.getByTestId("input") as HTMLTextAreaElement).value).toBe("");
+    expect(screen.getByTestId("status").textContent).toBe("ready");
   });
 
   test("initializes with project ID and messages", () => {
     const initialMessages = [
-      { id: "1", role: "user" as const, content: "Hello" },
-      { id: "2", role: "assistant" as const, content: "Hi there!" },
-    ];
+      { id: "1", role: "user" as const, parts: [{ type: "text", text: "Hello" }] },
+      { id: "2", role: "assistant" as const, parts: [{ type: "text", text: "Hi there!" }] },
+    ] as any[];
 
     (useAIChat as any).mockReturnValue({
       ...mockUseAIChat,
@@ -96,21 +96,20 @@ describe("ChatContext", () => {
       </ChatProvider>
     );
 
-    expect(useAIChat).toHaveBeenCalledWith({
-      api: "/api/chat",
-      initialMessages,
-      body: {
-        files: mockFileSystem.serialize(),
-        projectId: "test-project",
-      },
-      onToolCall: expect.any(Function),
-    });
+    // v6 useChat is called with messages, transport, onToolCall
+    expect(useAIChat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: initialMessages,
+        transport: expect.any(Object),
+        onToolCall: expect.any(Function),
+      })
+    );
 
     expect(screen.getByTestId("messages").textContent).toBe("2");
   });
 
   test("tracks anonymous work when no project ID", async () => {
-    const mockMessages = [{ id: "1", role: "user", content: "Hello" }];
+    const mockMessages = [{ id: "1", role: "user", parts: [{ type: "text", text: "Hello" }] }];
 
     (useAIChat as any).mockReturnValue({
       ...mockUseAIChat,
@@ -132,7 +131,7 @@ describe("ChatContext", () => {
   });
 
   test("does not track anonymous work when project ID exists", async () => {
-    const mockMessages = [{ id: "1", role: "user", content: "Hello" }];
+    const mockMessages = [{ id: "1", role: "user", parts: [{ type: "text", text: "Hello" }] }];
 
     (useAIChat as any).mockReturnValue({
       ...mockUseAIChat,
@@ -151,14 +150,9 @@ describe("ChatContext", () => {
   });
 
   test("passes through AI chat functionality", () => {
-    const mockHandleInputChange = vi.fn();
-    const mockHandleSubmit = vi.fn();
-
     (useAIChat as any).mockReturnValue({
       ...mockUseAIChat,
-      handleInputChange: mockHandleInputChange,
-      handleSubmit: mockHandleSubmit,
-      status: "loading",
+      status: "streaming",
     });
 
     render(
@@ -167,9 +161,9 @@ describe("ChatContext", () => {
       </ChatProvider>
     );
 
-    expect(screen.getByTestId("status").textContent).toBe("loading");
+    expect(screen.getByTestId("status").textContent).toBe("streaming");
 
-    // Verify functions are passed through
+    // Verify input and form elements exist
     const textarea = screen.getByTestId("input");
     const form = screen.getByTestId("form");
 
@@ -191,9 +185,13 @@ describe("ChatContext", () => {
       </ChatProvider>
     );
 
-    const toolCall = { toolName: "test", args: {} };
+    // v6 toolCall uses "input" instead of "args"
+    const toolCall = { toolName: "test", input: { command: "create" } };
     onToolCallHandler({ toolCall });
 
-    expect(mockHandleToolCall).toHaveBeenCalledWith(toolCall);
+    expect(mockHandleToolCall).toHaveBeenCalledWith({
+      toolName: "test",
+      args: { command: "create" },
+    });
   });
 });
