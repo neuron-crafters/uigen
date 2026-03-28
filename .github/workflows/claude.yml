@@ -45,13 +45,11 @@ jobs:
           additional_permissions: |
             actions: read
 
-          custom_instructions: |
-            The project is already setup with all dependencies installed.
-            The server is already runnning at localhost:3000. Logs from it are being written to logs.txt.
-            If needed, you can query the db with the 'sqlite3' cli.
-            If needed, use the mcp__playwright set of tools to launch a brower and interct with the app.
+          claude_args: >-
+            --allowedTools "Bash(npm:*),Bash(sqlite3:*),mcp__playwright__browser_snapshot,mcp__playwright__browser_navigate,mcp__playwright__browser_click,mcp__playwright__browser_type,mcp__playwright__browser_fill_form,mcp__playwright__browser_select_option,mcp__playwright__browser_wait_for,mcp__playwright__browser_take_screenshot,mcp__playwright__browser_console_messages"
+            --system-prompt "The project is already setup with all dependencies installed. The server is already running at localhost:3000. Logs from it are being written to logs.txt. If needed, you can query the db with the 'sqlite3' cli. If needed, use the mcp__playwright set of tools to launch a browser and interact with the app."
 
-          mcp_config: |
+          settings: |
             {
               "mcpServers": {
                 "playwright": {
@@ -64,8 +62,6 @@ jobs:
                 }
               }
             }
-
-          allowed_tools: "Bash(npm:*),Bash(sqlite3:*),mcp__playwright__browser_snapshot,mcp__playwright__browser_navigate,mcp__playwright__browser_click,mcp__playwright__browser_type,mcp__playwright__browser_fill_form,mcp__playwright__browser_select_option,mcp__playwright__browser_wait_for,mcp__playwright__browser_take_screenshot,mcp__playwright__browser_console_messages"
 
           # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
           # prompt: 'Update the pull request description to include a summary of changes.'
